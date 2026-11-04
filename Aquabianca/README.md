@@ -17,10 +17,11 @@ packages required — everything runs on the Python standard library.
 
 ## Default login
 
-- Admin: `admin` / `REMOVED`
-- Cashier: `cashier` / `REMOVED`
+On first run the app creates `admin` and `cashier` accounts with random
+passwords and saves them to `initial_logins.txt` next to the database. Keep that
+file private, and delete it once you have changed the passwords.
 
-Change these from inside the app: log in, use **Change Password** in the top
+Change passwords from inside the app: log in, use **Change Password** in the top
 bar for your own account, or the **Users** tab (admin only) to reset any
 user's password or add new accounts.
 

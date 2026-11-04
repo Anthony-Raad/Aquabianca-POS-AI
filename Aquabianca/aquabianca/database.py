@@ -1,4 +1,5 @@
 import hashlib
+import secrets
 import sqlite3
 import sys
 from datetime import datetime
@@ -9,6 +10,7 @@ if getattr(sys, "frozen", False):
     DB_PATH = Path(sys.executable).resolve().parent / "aquabianca_pos.db"
 else:
     DB_PATH = Path(__file__).resolve().parent.parent / "aquabianca_pos.db"
+INITIAL_LOGINS_FILE = "initial_logins.txt"
 DEFAULT_RATE = 89000.0
 DEFAULT_LOW_STOCK_THRESHOLD = 5
 INTEGRITY_ERRORS = (sqlite3.IntegrityError,)
@@ -145,19 +147,29 @@ class Database:
             ("low_stock_threshold", str(DEFAULT_LOW_STOCK_THRESHOLD)),
         )
 
-        default_users = [
-            ("admin", hash_password("REMOVED"), "admin", "System Admin"),
-            ("cashier", hash_password("REMOVED"), "cashier", "Main Cashier"),
-        ]
-        self._executemany(
-            cursor,
-            """
-            INSERT INTO users (username, password_hash, role, full_name)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(username) DO NOTHING
-            """,
-            default_users,
-        )
+        # First run only: create starting accounts with random passwords.
+        # Existing databases keep their users and passwords unchanged.
+        self._execute(cursor, "SELECT COUNT(*) FROM users")
+        if cursor.fetchone()[0] == 0:
+            starting_logins = [
+                ("admin", secrets.token_urlsafe(9), "admin", "System Admin"),
+                ("cashier", secrets.token_urlsafe(9), "cashier", "Main Cashier"),
+            ]
+            self._executemany(
+                cursor,
+                """
+                INSERT INTO users (username, password_hash, role, full_name)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(username) DO NOTHING
+                """,
+                [(name, hash_password(pw), role, full) for name, pw, role, full in starting_logins],
+            )
+            logins_path = Path(self.db_path).parent / INITIAL_LOGINS_FILE
+            logins_path.write_text(
+                "Starting logins for Aquabianca POS. Change them after logging in, then delete this file.\n"
+                + "".join(f"{name}: {pw}\n" for name, pw, _role, _full in starting_logins),
+                encoding="utf-8",
+            )
 
         self.connection.commit()
 

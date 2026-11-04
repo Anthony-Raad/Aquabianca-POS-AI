@@ -1,3 +1,5 @@
+from pathlib import Path
+from aquabianca.database import INITIAL_LOGINS_FILE
 from tkinter import messagebox, ttk
 
 
@@ -23,8 +25,9 @@ class LoginMixin:
 
         ttk.Button(card, text="Login", style="Primary.TButton", command=self.login).pack(fill="x")
 
-        helper = "Default admin: admin / REMOVED\nDefault cashier: cashier / REMOVED"
-        ttk.Label(card, text=helper, style="Sub.TLabel", justify="center").pack(anchor="center", pady=(18, 0))
+        if (Path(self.db.db_path).parent / INITIAL_LOGINS_FILE).exists():
+            helper = f"First run: your starting passwords are in {INITIAL_LOGINS_FILE}, next to the database."
+            ttk.Label(card, text=helper, style="Sub.TLabel", justify="center", wraplength=320).pack(anchor="center", pady=(18, 0))
 
         self.username_entry.focus_set()
         self.root.bind("<Return>", lambda _event: self.login())
